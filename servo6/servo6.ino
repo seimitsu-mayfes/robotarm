@@ -24,13 +24,13 @@ const int servoPins[6] = {25, 26, 27, 14, 12, 13};
 // サーボモーターの稼働範囲定義（各サーボの最小角度）
 const int minAngles[6] = {0, 30, 30, 30, 0, 0};
 // サーボモーターの稼働範囲定義（各サーボの最大角度）
-const int maxAngles[6] = {180, 150, 150, 150, 180, 180};
+const int maxAngles[6] = {270, 240, 240, 240, 180, 180};
 
 // サーボモーターのデフォルト位置（各サーボの初期角度）
-const int defaultAngles[6] = {90, 90, 90, 90, 90, 90}; 
+const int defaultAngles[6] = {135, 135, 135, 135, 135, 135}; 
 
 // 現在の角度を保存する配列（各サーボの現在の角度を記録）
-int currentAngles[6] = {0, 0, 0, 0, 0, 0};
+int currentAngles[6] = {135, 135, 135, 135, 135, 135};
 
 // 受信したコマンドを処理する関数のプロトタイプ宣言
 void processCommand(String command);
@@ -129,9 +129,11 @@ void loop() {
 void moveServo(int id, int angle) {
   if (id >= 0 && id < 6) {
     if (angle >= minAngles[id] && angle <= maxAngles[id]) {
-      servos[id].write(angle);  // サーボを指定された角度に動かす
+      // RDS3218サーボの場合、角度を2/3倍して書き込む
+      int adjustedAngle = (id >= 4) ? angle * 2 / 3 : angle;
+      servos[id].write(adjustedAngle);  // サーボを指定された角度に動かす
       currentAngles[id] = angle;  // 現在の角度を更新
-      Serial.printf("Servo %d moved to angle %d\n", id + 1, angle);
+      Serial.printf("Servo %d moved to angle %d (adjusted to %d)\n", id + 1, angle, adjustedAngle);
       Serial.println("Angle set successfully."); // 角度を指定した後のログ
     } else {
       Serial.printf("Error: Angle %d is out of range for Servo %d\n", angle, id + 1);
