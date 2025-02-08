@@ -18,7 +18,7 @@ bool oldDeviceConnected = false; // 前回の接続状態を記録するフラ�
 Servo servos[6];
 
 // サーボモーターのピン定義（各サーボのGPIOピン番号）
-const int servoPins[6] = {25, 26, 27, 14, 12, 13};
+const int servoPins[6] = {25, 26, 27, 18, 17, 16};
 
 //注意!:RDS3218は目標角度×2/3を入力する必要がある。
 // サーボモーターの稼働範囲定義（各サーボの最小角度）
@@ -130,7 +130,7 @@ void moveServo(int id, int angle) {
   if (id >= 0 && id < 6) {
     if (angle >= minAngles[id] && angle <= maxAngles[id]) {
       // RDS3218サーボの場合、角度を2/3倍して書き込む
-      int adjustedAngle = (id >= 4) ? angle * 2 / 3 : angle;
+      int adjustedAngle = (id <= 4) ? round((angle * 2.0) / 3.0) : angle;
       servos[id].write(adjustedAngle);  // サーボを指定された角度に動かす
       currentAngles[id] = angle;  // 現在の角度を更新
       Serial.printf("Servo %d moved to angle %d (adjusted to %d)\n", id + 1, angle, adjustedAngle);
