@@ -18,7 +18,7 @@ bool oldDeviceConnected = false; // 前回の接続状態を記録するフラ�
 Servo servos[6];
 
 // サーボモーターのピン定義（各サーボのGPIOピン番号）
-const int servoPins[6] = {25, 26, 27, 18, 17, 16};
+const int servoPins[6] = {17, 19, 21, 22, 26, 32};
 
 //注意!:RDS3218は目標角度×2/3を入力する必要がある。
 // サーボモーターの稼働範囲定義（各サーボの最小角度）
@@ -70,10 +70,10 @@ void setup() {
   for (int i = 0; i < 6; i++) {
     servos[i].setPeriodHertz(50);  // 全てのサーボの周波数を50Hzに設定
     if (i < 4) {
-      // 最初の2つのサーボ（SG-5010）の設定
+      // 最初の4つのサーボ（SG-5010）の設定
       servos[i].attach(servoPins[i], 500, 2500);
     } else {
-      // 残りの4つのサーボ（RDS3218）の設定
+      // 残りの2つのサーボ（RDS3218）の設定
       servos[i].attach(servoPins[i], 1000, 2000);
     }
     // サーボをデフォルト位置に移動

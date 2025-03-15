@@ -7,7 +7,7 @@ void setup() {
   Serial.begin(115200);
   ESP32PWM::allocateTimer(0);
   servo1.setPeriodHertz(50);  // 標準的な50Hz
-  servo1.attach(servoPin1, 500, 2500);  // サーボの最小/最大パルス幅を調整
+  servo1.attach(servoPin1, 1000, 2000);  // サーボの最小/最大パルス幅を調整
 }
 
 void loop() {
@@ -15,29 +15,29 @@ void loop() {
   servo1.write(0);
   delay(5000);  // 5秒待機
 
-  Serial.printf("Moved to angle: %d\n", 45);
+  Serial.printf("Moved to angle: %d\n", 30);
   servo1.write(30);
   delay(3000);  // 3秒待機
 
-  Serial.printf("Moved to angle: %d\n", 90);
+  Serial.printf("Moved to angle: %d\n", 60);
   servo1.write(60);
   delay(3000);  // 3秒待機
 
-  Serial.printf("Moved to angle: %d\n", 135);
+  Serial.printf("Moved to angle: %d\n", 90);
   servo1.write(90);
   delay(3000);  // 3秒待機
 
-  Serial.printf("Moved to angle: %d\n", 180);
-  servo1.write(120);
-  delay(3000);  // 3秒待機
+  // Serial.printf("Moved to angle: %d\n", 180);
+  // servo1.write(120);
+  // delay(3000);  // 3秒待機
 
-  Serial.printf("Moved to angle: %d\n", 225);
-  servo1.write(150);
-  delay(3000);  // 3秒待機
+  // Serial.printf("Moved to angle: %d\n", 225);
+  // servo1.write(150);
+  // delay(3000);  // 3秒待機
 
-  Serial.printf("Moved to angle: %d\n", 270);
-  servo1.write(180);
-  delay(3000);  // 3秒待機
+  // Serial.printf("Moved to angle: %d\n", 270);
+  // servo1.write(180);
+  // delay(3000);  // 3秒待機
 }
 
 
