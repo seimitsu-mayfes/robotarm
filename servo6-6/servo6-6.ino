@@ -51,7 +51,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
       String value = pCharacteristic->getValue().c_str(); // 受信したデータをString型に変換
       if (value.length() > 0) {
-        Serial.println("Received command: " + value); // 受信したコマンドをシリアル出力
+        Serial.println("受信したコマンド: " + value); // 受信したコマンドをシリアル出力
         processCommand(value); // 受信したコマンドを処理
       }
     }
@@ -74,13 +74,13 @@ void setup() {
       servos[i].attach(servoPins[i], 500, 2500);
     } else {
       // 残りの2つのサーボ（SG-5010）の設定
-      servos[i].attach(servoPins[i], 1000, 2000);
+      servos[i].attach(servoPins[i], 500, 2500);
     }
     // サーボをデフォルト位置に移動（RDS3218サーボは角度調整が必要）
     int adjustedDefaultAngle = (i < 4) ? round((defaultAngles[i] * 2.0) / 3.0) : defaultAngles[i];
     servos[i].write(adjustedDefaultAngle);
     currentAngles[i] = defaultAngles[i];
-    Serial.printf("Servo %d initialized to angle %d (adjusted to %d)\n", i + 1, defaultAngles[i], adjustedDefaultAngle);
+    Serial.printf("サーボ %d を角度 %d に初期化 (調整後 %d)\n", i + 1, defaultAngles[i], adjustedDefaultAngle);
   }
 
   // BLEデバイスの初期化
@@ -111,7 +111,7 @@ void setup() {
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);
   BLEDevice::startAdvertising();
-  Serial.println("BLE device is ready to pair");
+  Serial.println("BLEデバイスがペアリング待機中");
 }
 
 void loop() {
@@ -119,7 +119,7 @@ void loop() {
   if (!deviceConnected && oldDeviceConnected) {
     delay(500); // 接続が切れた後、再アドバタイジングを開始するまでの遅延
     pServer->startAdvertising(); // 再アドバタイジングの開始
-    Serial.println("Start advertising");
+    Serial.println("アドバタイジング開始");
     oldDeviceConnected = deviceConnected;
   }
   if (deviceConnected && !oldDeviceConnected) {
@@ -135,23 +135,53 @@ void moveServo(int id, int angle) {
       int adjustedAngle = (id < 4) ? round((angle * 2.0) / 3.0) : angle;
       servos[id].write(adjustedAngle);  // サーボを指定された角度に動かす
       currentAngles[id] = angle;  // 現在の角度を更新
-      Serial.printf("Servo %d moved to angle %d (adjusted to %d)\n", id + 1, angle, adjustedAngle);
-      Serial.println("Angle set successfully."); // 角度を指定した後のログ
+      Serial.printf("サーボ %d を角度 %d に移動 (調整後 %d)\n", id + 1, angle, adjustedAngle);
     } else {
-      Serial.printf("Error: Angle %d is out of range for Servo %d\n", angle, id + 1);
+      Serial.printf("エラー: 角度 %d はサーボ %d の範囲外です\n", angle, id + 1);
     }
   } else {
-    Serial.printf("Error: Invalid servo ID %d\n", id + 1);
+    Serial.printf("エラー: 無効なサーボID %d\n", id + 1);
   }
 }
 
 // 受信したコマンドを処理する関数
 void processCommand(String command) {
-  int id, angle;
-  if (sscanf(command.c_str(), "%d %d", &id, &angle) == 2) {
-    Serial.printf("Processing command: ID=%d, Angle=%d\n", id, angle);
-    moveServo(id - 1, angle);  // IDは1から始まるが、配列は0から始まるため調整
-  } else {
-    Serial.println("Error: Invalid command format. Use 'ID ANGLE'");
+  // 空白で区切られた6つの数値を解析
+  int angles[6];
+  int count = 0;
+  int lastIndex = 0;
+  int nextIndex = 0;
+  
+  // コマンド文字列を解析して6つの角度を取得
+  while (nextIndex >= 0 && count < 6) {
+    nextIndex = command.indexOf(' ', lastIndex);
+    String angleStr;
+    
+    if (nextIndex < 0) {
+      // 最後の数値
+      angleStr = command.substring(lastIndex);
+    } else {
+      // 中間の数値
+      angleStr = command.substring(lastIndex, nextIndex);
+      lastIndex = nextIndex + 1;
+    }
+    
+    if (angleStr.length() > 0) {
+      angles[count] = angleStr.toInt();
+      count++;
+    }
   }
-}
+  
+  // 6つの角度が正しく取得できたかチェック
+  if (count == 6) {
+    Serial.println("6つのサーボ角度を設定します:");
+    for (int i = 0; i < 6; i++) {
+      Serial.printf("サーボ %d: %d度\n", i + 1, angles[i]);
+      moveServo(i, angles[i]);
+    }
+    Serial.println("全てのサーボ角度を設定しました");
+  } else {
+    Serial.printf("エラー: 6つの角度が必要ですが、%d個しか取得できませんでした\n", count);
+    Serial.println("正しい形式: '角度1 角度2 角度3 角度4 角度5 角度6'");
+  }
+} 
