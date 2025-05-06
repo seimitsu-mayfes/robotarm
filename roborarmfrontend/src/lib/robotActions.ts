@@ -1,0 +1,11 @@
+export type RobotArmAction =
+  | 'greeting'   // 挨拶
+  | 'move'       // 移動
+  | 'stop'       // 停止
+  | 'nod'       // うなずく
+  | 'pick'       // 物をつかむ
+  | 'place'      // 物を置く
+  | 'wave'       // 手を振る
+  | 'rotate'     // 回転
+  | 'point'      // 指差し
+  | 'shake';     // シェイク/振る 
