@@ -59,7 +59,9 @@ async def send_action(action_name: str):
     action_sequence = action_data[action_name]["sequence"]
     full_sequence = generate_full_sequence(action_sequence)
     # BLE接続維持・再接続ロジック
+    print(f"[BLE] 現在の接続状態: ble_client={ble_client}, is_connected={getattr(ble_client, 'is_connected', False)}")
     if ble_client is None or not getattr(ble_client, 'is_connected', False):
+        print(f"[BLE] 未接続または切断状態。再接続を試みます。")
         print(f"BLEデバイス '{BLE_DEVICE_NAME}' を検索中...")
         if ble_device is None:
             ble_device = await BleakScanner.find_device_by_name(BLE_DEVICE_NAME)
@@ -68,6 +70,8 @@ async def send_action(action_name: str):
         ble_client = BleakClient(ble_device)
         await ble_client.connect()
         print(f"{ble_device.name} に再接続しました")
+    else:
+        print(f"[BLE] 既に接続済み。再利用します。")
     await send_sequence_ble(ble_client, full_sequence)
     return f"{action_name} のシーケンス送信完了"
 

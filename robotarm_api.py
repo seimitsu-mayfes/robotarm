@@ -37,7 +37,9 @@ async def shutdown_event():
 @app.post("/action")
 async def do_action(req: ActionRequest):
     try:
+        print(f"[API] POST /action 受信: action={req.action}")
         result = await send_action(req.action)
         return {"status": "ok", "detail": result}
     except Exception as e:
+        print(f"[API] /action エラー: {e}")
         raise HTTPException(status_code=500, detail=str(e)) 
