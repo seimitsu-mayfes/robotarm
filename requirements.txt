@@ -1,3 +1,6 @@
 aioconsole==0.8.1
 bleak==0.22.3
 numpy>=2.0.0
+fastapi
+uvicorn
+pydantic

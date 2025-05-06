@@ -14,6 +14,10 @@ MINIMUM_STEP = 10  # 角度の最小ステップ（度）
 # 初期位置
 INIT_POSITION = [135, 200, 30, 45, 90, 90]
 
+# グローバルなBLEクライアント・デバイス
+ble_client = None
+ble_device = None
+
 def interpolate_angles(start_angles, end_angles, min_step):
     max_diff = max([abs(end - start) for start, end in zip(start_angles, end_angles)])
     steps = max(1, int(np.ceil(max_diff / min_step)))
@@ -45,35 +49,28 @@ async def send_sequence_ble(client, sequence):
         await asyncio.sleep(DELAY_BETWEEN_STEPS)
     print("シーケンス送信完了")
 
-async def main():
-    # robotaction.jsonから全actionをロード
+async def send_action(action_name: str):
+    global ble_client, ble_device
+    # robotaction.jsonからsequenceを取得
     with open("robotaction.json", "r") as f:
         action_data = json.load(f)
+    if action_name not in action_data:
+        raise ValueError(f"未定義のactionです: {action_name}")
+    action_sequence = action_data[action_name]["sequence"]
+    full_sequence = generate_full_sequence(action_sequence)
+    # BLE接続維持・再接続ロジック
+    if ble_client is None or not getattr(ble_client, 'is_connected', False):
+        print(f"BLEデバイス '{BLE_DEVICE_NAME}' を検索中...")
+        if ble_device is None:
+            ble_device = await BleakScanner.find_device_by_name(BLE_DEVICE_NAME)
+            if not ble_device:
+                raise RuntimeError(f"BLEデバイスが見つかりません: {BLE_DEVICE_NAME}")
+        ble_client = BleakClient(ble_device)
+        await ble_client.connect()
+        print(f"{ble_device.name} に再接続しました")
+    await send_sequence_ble(ble_client, full_sequence)
+    return f"{action_name} のシーケンス送信完了"
 
-    print(f"BLEデバイス '{BLE_DEVICE_NAME}' を検索中...")
-    device = await BleakScanner.find_device_by_name(BLE_DEVICE_NAME)
-    if not device:
-        print(f"エラー: '{BLE_DEVICE_NAME}' が見つかりません")
-        return
-    print(f"デバイスが見つかりました。接続中...")
-    try:
-        async with BleakClient(device) as client:
-            print(f"{device.name} に接続しました")
-            print("action名を入力してください（例: greeting, nod, ...）。exit/quitで終了します。")
-            while True:
-                action = input("action> ").strip()
-                if action.lower() in ("exit", "quit"):
-                    print("終了します。")
-                    break
-                if action not in action_data:
-                    print(f"未定義のactionです: {action}")
-                    continue
-                action_sequence = action_data[action]["sequence"]
-                full_sequence = generate_full_sequence(action_sequence)
-                print(f"{action} のシーケンスを送信します")
-                await send_sequence_ble(client, full_sequence)
-    except Exception as e:
-        print(f"BLE接続エラー: {e}")
-
-if __name__ == "__main__":
-    asyncio.run(main()) 
+# 旧mainループはコメントアウトまたは削除
+# if __name__ == "__main__":
+#     asyncio.run(main()) 
