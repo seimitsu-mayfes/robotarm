@@ -46,7 +46,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(answerObj ?? data);
+    // chat/act形式で返ってくる場合
+    const responseData = answerObj ?? data;
+
+    // actが存在する場合はFastAPIサーバーにPOST
+    if (responseData.act) {
+      try {
+        await fetch("http://localhost:8000/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: responseData.act }),
+        });
+      } catch (e) {
+        console.error("FastAPIサーバーへのPOSTに失敗:", e);
+      }
+    }
+
+    return NextResponse.json(responseData);
   } catch (e) {
     console.error("APIルートで例外:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
