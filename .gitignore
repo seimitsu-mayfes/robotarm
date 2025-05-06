@@ -2,3 +2,4 @@
 venv/
 DifyTest/
 env/
+__pycache__/
