@@ -2,6 +2,96 @@
 import { useState, useEffect, useRef } from "react";
 import type { RobotArmAction } from "../../lib/robotActions";
 
+// 型定義: ブラウザのWeb Speech API用
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
+  }
+  var webkitSpeechRecognition: any;
+  var SpeechRecognition: any;
+  interface SpeechRecognitionEvent extends Event {
+    results: {
+      [index: number]: {
+        [index: number]: { transcript: string }
+      }
+    }
+  }
+}
+
+function SpeechInputButton({ onResult, disabled }: { onResult: (text: string) => void, disabled?: boolean }) {
+  const recognitionRef = useRef<any>(null);
+  const [listening, setListening] = useState(false);
+
+  const startRecognition = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('このブラウザは音声認識に対応していません');
+      return;
+    }
+    const SpeechRecognition: any = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ja-JP';
+    recognition.interimResults = false;
+    recognition.onstart = () => {
+      console.log('[音声認識] 開始');
+    };
+    recognition.onaudiostart = () => {
+      console.log('[音声認識] 音声入力開始');
+    };
+    recognition.onspeechstart = () => {
+      console.log('[音声認識] 発話検出');
+    };
+    recognition.onspeechend = () => {
+      console.log('[音声認識] 発話終了');
+    };
+    recognition.onresult = (event: any) => {
+      const text = event.results[0][0].transcript;
+      console.log('[音声認識] 認識結果:', text);
+      onResult(text);
+      setListening(false);
+    };
+    recognition.onend = () => {
+      console.log('[音声認識] 認識終了');
+      setListening(false);
+    };
+    recognition.onerror = (e: any) => {
+      console.log('[音声認識] エラー:', e.error);
+      setListening(false);
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+    setListening(true);
+    console.log('[音声認識] 認識処理開始');
+  };
+
+  const stopRecognition = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+    console.log('[音声認識] 手動停止');
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={listening ? stopRecognition : startRecognition}
+      disabled={disabled}
+      style={{
+        marginLeft: 8,
+        padding: '0 18px',
+        fontSize: 18,
+        borderRadius: 8,
+        border: '1.5px solid #ccc',
+        background: listening ? '#ff9800' : '#f5f5f5',
+        color: listening ? '#fff' : '#222',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        height: 48
+      }}
+    >
+      {listening ? '認識中…' : '🎤 音声'}
+    </button>
+  );
+}
+
 export default function RobotChatPage() {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState<{ chat: string; act: RobotArmAction; action_id?: string } | null>(null);
@@ -9,6 +99,7 @@ export default function RobotChatPage() {
   const [error, setError] = useState("");
   const [actionStatus, setActionStatus] = useState<"pending" | "done" | "unknown">("done");
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (response?.action_id) {
@@ -37,9 +128,20 @@ export default function RobotChatPage() {
     }
   }, [actionStatus]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  useEffect(() => {
+    if (response?.chat) {
+      // 日本語音声で読み上げ
+      const utter = new window.SpeechSynthesisUtterance(response.chat);
+      utter.lang = "ja-JP";
+      // 利用可能な日本語音声を自動選択
+      const voices = window.speechSynthesis.getVoices();
+      const jaVoice = voices.find(v => v.lang === "ja-JP");
+      if (jaVoice) utter.voice = jaVoice;
+      window.speechSynthesis.speak(utter);
+    }
+  }, [response?.chat]);
+
+  const sendQuery = async (text: string) => {
     setLoading(true);
     setError("");
     setResponse(null);
@@ -48,11 +150,9 @@ export default function RobotChatPage() {
       const res = await fetch("/api/robotchat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: text }),
       });
-      if (!res.ok) {
-        throw new Error("APIエラー");
-      }
+      if (!res.ok) throw new Error("APIエラー");
       const data = await res.json();
       setResponse(data);
     } catch (err: any) {
@@ -62,10 +162,28 @@ export default function RobotChatPage() {
     }
   };
 
-  // Enterキーのみで送信
+  const handleSpeechResult = (text: string) => {
+    setQuery(text);
+    if (autoSendTimerRef.current) clearTimeout(autoSendTimerRef.current);
+    console.log('[音声認識] 自動送信タイマー開始: 0.5秒');
+    autoSendTimerRef.current = setTimeout(() => {
+      if (text.trim() && !loading && actionStatus !== "pending") {
+        console.log('[音声認識] 0.5秒経過で自動送信:', text);
+        sendQuery(text);
+      }
+    }, 500);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim() || loading || actionStatus === "pending") return;
+    sendQuery(query);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !loading && actionStatus !== "pending" && query.trim()) {
-      handleSubmit(e as any);
+      e.preventDefault();
+      sendQuery(query);
     }
   };
 
@@ -173,6 +291,10 @@ export default function RobotChatPage() {
           onKeyDown={handleKeyDown}
           placeholder="質問や指示を入力..."
           style={{ width: "60%", padding: 16, fontSize: 22, borderRadius: 12, border: "1.5px solid #ccc" }}
+          disabled={loading || actionStatus === "pending"}
+        />
+        <SpeechInputButton
+          onResult={handleSpeechResult}
           disabled={loading || actionStatus === "pending"}
         />
       </form>
