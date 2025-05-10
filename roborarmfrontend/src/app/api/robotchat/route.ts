@@ -49,20 +49,16 @@ export async function POST(req: NextRequest) {
     // chat/act形式で返ってくる場合
     const responseData = answerObj ?? data;
 
-    // actが存在する場合はFastAPIサーバーにPOST
+    const actionId = String(Date.now()) + Math.random().toString(36).slice(2, 8);
     if (responseData.act) {
-      try {
-        await fetch("http://localhost:8000/action", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: responseData.act }),
-        });
-      } catch (e) {
-        console.error("FastAPIサーバーへのPOSTに失敗:", e);
-      }
+      // BLEアクションはawaitせず非同期で実行
+      fetch("http://localhost:8000/action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: responseData.act, action_id: actionId }),
+      });
     }
-
-    return NextResponse.json(responseData);
+    return NextResponse.json({ ...responseData, action_id: actionId });
   } catch (e) {
     console.error("APIルートで例外:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });

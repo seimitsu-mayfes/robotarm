@@ -78,3 +78,29 @@ async def send_action(action_name: str):
 # 旧mainループはコメントアウトまたは削除
 # if __name__ == "__main__":
 #     asyncio.run(main()) 
+
+if __name__ == "__main__":
+    async def console():
+        global ble_client, ble_device
+        print("==== robotactionBLE console ====")
+        print("アクション名を入力してください（qで終了）")
+        while True:
+            action = input("action> ").strip()
+            if action.lower() == 'q':
+                # 切断処理
+                if ble_client and getattr(ble_client, 'is_connected', False):
+                    await ble_client.disconnect()
+                    print("BLE切断しました")
+                print("終了します")
+                break
+            if not action:
+                continue
+            try:
+                result = await send_action(action)
+                print(result)
+            except Exception as e:
+                print(f"エラー: {e}")
+                # BLE状態をリセット
+                ble_client = None
+                ble_device = None
+    asyncio.run(console()) 
