@@ -1,11 +1,20 @@
 export type RobotArmAction =
   | 'greeting'   // 挨拶
-  | 'move'       // 移動
+  | 'struggle'   // もがく
   | 'stop'       // 停止
-  | 'nod'       // うなずく
+  | 'nod'        // うなずく
   | 'pick'       // 物をつかむ
   | 'place'      // 物を置く
   | 'wave'       // 手を振る
   | 'rotate'     // 回転
   | 'point'      // 指差し
-  | 'shake';     // シェイク/振る 
+  | 'shake'      // シェイク/振る
+  | 'surprised'  // 驚き
+  | 'happy'      // 喜び
+  | 'sad'        // 悲しみ
+  | 'clap'       // 拍手
+  | 'shake_fast' // 速いシェイク
+  | 'slow_wave'  // ゆっくり手を振る
+  | 'tilt_left'  // 左に傾ける
+  | 'tilt_right' // 右に傾ける
+  | 'offer';     // 差し出す 

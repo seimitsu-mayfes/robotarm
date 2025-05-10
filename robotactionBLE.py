@@ -73,6 +73,9 @@ async def send_action(action_name: str):
     else:
         print(f"[BLE] 既に接続済み。再利用します。")
     await send_sequence_ble(ble_client, full_sequence)
+    await ble_client.disconnect()
+    ble_client = None
+    ble_device = None
     return f"{action_name} のシーケンス送信完了"
 
 # 旧mainループはコメントアウトまたは削除
