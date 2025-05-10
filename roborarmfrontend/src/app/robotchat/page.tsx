@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import type { RobotArmAction } from "../../lib/robotActions";
 
 // 型定義: ブラウザのWeb Speech API用
@@ -19,7 +19,11 @@ declare global {
   }
 }
 
-function SpeechInputButton({ onResult, disabled }: { onResult: (text: string) => void, disabled?: boolean }) {
+// SpeechInputButtonをforwardRefでラップ
+const SpeechInputButton = forwardRef(function SpeechInputButton(
+  { onResult, disabled }: { onResult: (text: string) => void, disabled?: boolean },
+  ref
+) {
   const recognitionRef = useRef<any>(null);
   const [listening, setListening] = useState(false);
 
@@ -70,6 +74,12 @@ function SpeechInputButton({ onResult, disabled }: { onResult: (text: string) =>
     console.log('[音声認識] 手動停止');
   };
 
+  useImperativeHandle(ref, () => ({
+    startRecognition,
+    stopRecognition,
+    isListening: () => listening,
+  }));
+
   return (
     <button
       type="button"
@@ -90,7 +100,7 @@ function SpeechInputButton({ onResult, disabled }: { onResult: (text: string) =>
       {listening ? '認識中…' : '🎤 音声'}
     </button>
   );
-}
+});
 
 export default function RobotChatPage() {
   const [query, setQuery] = useState("");
@@ -100,6 +110,7 @@ export default function RobotChatPage() {
   const [actionStatus, setActionStatus] = useState<"pending" | "done" | "unknown">("done");
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const speechButtonRef = useRef<any>(null);
 
   useEffect(() => {
     if (response?.action_id) {
@@ -121,10 +132,14 @@ export default function RobotChatPage() {
     }
   }, [response?.action_id]);
 
-  // actionStatusがdoneになったら入力欄をクリア
+  // actionStatusがdoneになったら入力欄をクリアし、音声認識を自動再開
   useEffect(() => {
     if (actionStatus === "done") {
       setQuery("");
+      // 音声認識が止まっている場合のみ再開
+      if (speechButtonRef.current && !speechButtonRef.current.isListening()) {
+        speechButtonRef.current.startRecognition();
+      }
     }
   }, [actionStatus]);
 
@@ -294,6 +309,7 @@ export default function RobotChatPage() {
           disabled={loading || actionStatus === "pending"}
         />
         <SpeechInputButton
+          ref={speechButtonRef}
           onResult={handleSpeechResult}
           disabled={loading || actionStatus === "pending"}
         />
