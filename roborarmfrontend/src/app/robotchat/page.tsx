@@ -145,13 +145,12 @@ export default function RobotChatPage() {
 
   useEffect(() => {
     if (response?.chat) {
-      // 日本語音声で読み上げ
       const utter = new window.SpeechSynthesisUtterance(response.chat);
       utter.lang = "ja-JP";
-      // 利用可能な日本語音声を自動選択
       const voices = window.speechSynthesis.getVoices();
       const jaVoice = voices.find(v => v.lang === "ja-JP");
       if (jaVoice) utter.voice = jaVoice;
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utter);
     }
   }, [response?.chat]);
