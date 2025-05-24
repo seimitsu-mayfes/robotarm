@@ -133,6 +133,7 @@ export default function RobotChatPage() {
   }, [response?.action_id]);
 
   // actionStatusがdoneになったら入力欄をクリアし、音声認識を自動再開
+  /*
   useEffect(() => {
     if (actionStatus === "done") {
       setQuery("");
@@ -142,6 +143,7 @@ export default function RobotChatPage() {
       }
     }
   }, [actionStatus]);
+  */
 
   useEffect(() => {
     if (response?.chat) {
